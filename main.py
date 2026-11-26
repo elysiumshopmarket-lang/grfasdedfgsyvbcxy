@@ -20,6 +20,11 @@ VERSE_CHANNEL_ID = int(os.getenv("VERSE_CHANNEL_ID", "0"))
 VOICE_CHANNEL_ID = int(os.getenv("VOICE_NOTIFY_CHANNEL_ID", "0"))
 VOICE_COOLDOWN_MIN = int(os.getenv("VOICE_COOLDOWN_MIN", "10"))
 
+# Telefon-Zentrale (MicroSIP): nur auf dem Windows-PC aktivieren, NICHT auf Railway
+PHONE_ENABLED = os.getenv("PHONE_ENABLED", "0") == "1"
+if PHONE_ENABLED:
+    import phone
+
 VERSES = {
     "bibel": [
         {"ref": "1. Korinther 13:13", "text": "Nun aber bleibet Glaube, Hoffnung, Liebe, diese drei; aber die Liebe ist die größte unter ihnen."},
@@ -145,6 +150,8 @@ async def vers(interaction: discord.Interaction, quelle: app_commands.Choice[str
 # ---------------------------------------------------------------- Voice
 @bot.event
 async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if PHONE_ENABLED:
+        await phone.on_voice_update(member, before, after)
     if member.bot or not VOICE_CHANNEL_ID:
         return
     if after.channel is None or before.channel == after.channel:
@@ -240,6 +247,9 @@ async def ping(interaction: discord.Interaction):
 # ---------------------------------------------------------------- Start
 @bot.event
 async def setup_hook():
+    if PHONE_ENABLED:
+        phone.register(bot)
+        await phone.start_event_server()
     if GUILD_ID:
         guild = discord.Object(id=GUILD_ID)
         bot.tree.copy_global_to(guild=guild)
