@@ -1,6 +1,1 @@
-discord.py[voice]
-discord-ext-voice-recv
-sounddevice
-numpy
-aiohttp
-python-dotenv
+
