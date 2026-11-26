@@ -1,5 +1,4 @@
 import os
-import json
 import random
 import logging
 from datetime import datetime, date, time as dtime
@@ -16,17 +15,47 @@ log = logging.getLogger("buschi")
 TZ = ZoneInfo("Europe/Berlin")
 
 TOKEN = os.environ["DISCORD_TOKEN"]
-GUILD_ID = int(os.getenv("GUILD_ID", "0"))                      # optional: Server-ID (Commands sofort sichtbar)
-VERSE_CHANNEL_ID = int(os.getenv("VERSE_CHANNEL_ID", "0"))      # Kanal fuer "Vers des Tages"
-VOICE_CHANNEL_ID = int(os.getenv("VOICE_NOTIFY_CHANNEL_ID", "0"))  # Kanal fuer Voice-Benachrichtigung
+GUILD_ID = int(os.getenv("GUILD_ID", "0"))
+VERSE_CHANNEL_ID = int(os.getenv("VERSE_CHANNEL_ID", "0"))
+VOICE_CHANNEL_ID = int(os.getenv("VOICE_NOTIFY_CHANNEL_ID", "0"))
 VOICE_COOLDOWN_MIN = int(os.getenv("VOICE_COOLDOWN_MIN", "10"))
 
-with open(os.path.join(os.path.dirname(__file__), "verses.json"), encoding="utf-8") as f:
-    VERSES = json.load(f)
+VERSES = {
+    "bibel": [
+        {"ref": "1. Korinther 13:13", "text": "Nun aber bleibet Glaube, Hoffnung, Liebe, diese drei; aber die Liebe ist die größte unter ihnen."},
+        {"ref": "Johannes 3:16", "text": "Also hat Gott die Welt geliebt, daß er seinen eingeborenen Sohn gab, auf daß alle, die an ihn glauben, nicht verloren werden, sondern das ewige Leben haben."},
+        {"ref": "Philipper 4:13", "text": "Ich vermag alles durch den, der mich mächtig macht, Christus."},
+        {"ref": "Römer 8:28", "text": "Wir wissen aber, daß denen, die Gott lieben, alle Dinge zum Besten dienen, denen, die nach dem Vorsatz berufen sind."},
+        {"ref": "Matthäus 11:28", "text": "Kommet her zu mir, alle, die ihr mühselig und beladen seid; ich will euch erquicken."},
+        {"ref": "Johannes 14:27", "text": "Den Frieden lasse ich euch, meinen Frieden gebe ich euch; nicht gebe ich euch, wie die Welt gibt. Euer Herz erschrecke nicht und fürchte sich nicht."},
+        {"ref": "Matthäus 5:9", "text": "Selig sind die Friedfertigen; denn sie werden Gottes Kinder heißen."},
+        {"ref": "Römer 12:12", "text": "Seid fröhlich in Hoffnung, geduldig in Trübsal, haltet an am Gebet."},
+        {"ref": "Hebräer 11:1", "text": "Es ist aber der Glaube eine gewisse Zuversicht des, das man hoffet, und nicht zweifeln an dem, das man nicht siehet."},
+        {"ref": "Matthäus 7:7", "text": "Bittet, so wird euch gegeben; suchet, so werdet ihr finden; klopfet an, so wird euch aufgetan."},
+        {"ref": "2. Timotheus 1:7", "text": "Denn Gott hat uns nicht gegeben den Geist der Furcht, sondern der Kraft und der Liebe und der Zucht."},
+        {"ref": "1. Petrus 5:7", "text": "Alle eure Sorge werfet auf ihn; denn er sorgt für euch."},
+        {"ref": "Matthäus 6:34", "text": "Darum sorget nicht für den andern Morgen; denn der morgige Tag wird für das Seine sorgen. Es ist genug, daß ein jeglicher Tag seine eigene Plage habe."},
+    ],
+    "tanach": [
+        {"ref": "Jesaja 41:10", "text": "Fürchte dich nicht, ich bin mit dir; weiche nicht, denn ich bin dein Gott; ich stärke dich, ich helfe dir auch."},
+        {"ref": "Josua 1:9", "text": "Siehe, ich habe dir geboten, daß du getrost und freudig seiest. Laß dir nicht grauen und entsetze dich nicht; denn der HERR, dein Gott, ist mit dir in allem, was du tun wirst."},
+        {"ref": "Psalm 23:1", "text": "Der HERR ist mein Hirte, mir wird nichts mangeln."},
+        {"ref": "Psalm 121:1-2", "text": "Ich hebe meine Augen auf zu den Bergen, von welchen mir Hilfe kommt. Meine Hilfe kommt von dem HERRN, der Himmel und Erde gemacht hat."},
+        {"ref": "Sprüche 3:5", "text": "Verlaß dich auf den HERRN von ganzem Herzen, und verlaß dich nicht auf deinen Verstand."},
+        {"ref": "Psalm 118:24", "text": "Dies ist der Tag, den der HERR macht; laßt uns freuen und fröhlich darinnen sein."},
+        {"ref": "Micha 6:8", "text": "Es ist dir gesagt, Mensch, was gut ist und was der HERR von dir fordert, nämlich Gottes Wort halten und Liebe üben und demütig sein vor deinem Gott."},
+        {"ref": "Psalm 27:1", "text": "Der HERR ist mein Licht und mein Heil; vor wem sollte ich mich fürchten? Der HERR ist meines Lebens Kraft; vor wem sollte mir grauen?"},
+        {"ref": "Jesaja 40:31", "text": "Aber die auf den HERRN harren, kriegen neue Kraft, daß sie auffahren mit Flügeln wie Adler, daß sie laufen und nicht matt werden, daß sie wandeln und nicht müde werden."},
+        {"ref": "5. Mose 31:6", "text": "Seid getrost und unverzagt, fürchtet euch nicht und laßt euch nicht vor ihnen grauen; denn der HERR, dein Gott, wird selber mit dir wandeln und wird die Hand nicht abtun noch dich verlassen."},
+        {"ref": "Prediger 3:1", "text": "Ein jegliches hat seine Zeit, und alles Vornehmen unter dem Himmel hat seine Stunde."},
+        {"ref": "Psalm 46:2", "text": "Gott ist unsre Zuversicht und Stärke, eine Hilfe in den großen Nöten, die uns getroffen haben."},
+        {"ref": "Psalm 37:5", "text": "Befiehl dem HERRN deine Wege und hoffe auf ihn, er wird's wohl machen."},
+    ],
+}
 
 intents = discord.Intents.default()
 intents.voice_states = True
-intents.members = True  # im Developer Portal "Server Members Intent" aktivieren
+intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -41,7 +70,7 @@ def day_index(d: date, offset: int, length: int) -> int:
 def bible_embed(d: date) -> discord.Embed:
     v = VERSES["bibel"][day_index(d, 0, len(VERSES["bibel"]))]
     e = discord.Embed(title="Bibelvers des Tages", description=f"*{v['text']}*", color=0xF1C40F)
-    e.add_field(name="", value=f"**• {v['ref']}**", inline=False)
+    e.add_field(name="\u200b", value=f"**• {v['ref']}**", inline=False)
     e.set_footer(text=f"Lutherbibel 1912 • {d:%d.%m.%Y}")
     return e
 
@@ -49,13 +78,12 @@ def bible_embed(d: date) -> discord.Embed:
 def tanach_embed(d: date) -> discord.Embed:
     v = VERSES["tanach"][day_index(d, 7, len(VERSES["tanach"]))]
     e = discord.Embed(title="Tanach-Vers des Tages", description=f"*{v['text']}*", color=0x3498DB)
-    e.add_field(name="", value=f"**• {v['ref']}**", inline=False)
+    e.add_field(name="\u200b", value=f"**• {v['ref']}**", inline=False)
     e.set_footer(text=f"Hebräische Bibel (Lutherbibel 1912) • {d:%d.%m.%Y}")
     return e
 
 
 async def quran_embed(d: date) -> discord.Embed:
-    # pro Tag eine feste Ayah (1..6236), damit /vers und der 0-Uhr-Post identisch sind
     n = (d.toordinal() * 37) % 6236 + 1
     url = f"https://api.alquran.cloud/v1/ayah/{n}/editions/quran-uthmani,de.bubenheim"
     try:
@@ -70,7 +98,7 @@ async def quran_embed(d: date) -> discord.Embed:
         desc = "*Heute konnte der Koranvers nicht geladen werden.*"
         ref = "—"
     e = discord.Embed(title="Koranvers des Tages", description=desc, color=0x2ECC71)
-    e.add_field(name="", value=f"**• {ref}**", inline=False)
+    e.add_field(name="\u200b", value=f"**• {ref}**", inline=False)
     e.set_footer(text=f"Vers des Tages • {d:%d.%m.%Y}")
     return e
 
@@ -119,7 +147,6 @@ async def vers(interaction: discord.Interaction, quelle: app_commands.Choice[str
 async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
     if member.bot or not VOICE_CHANNEL_ID:
         return
-    # nur wenn jemand einem leeren Kanal beitritt
     if after.channel is None or before.channel == after.channel:
         return
     if len(after.channel.members) != 1:
