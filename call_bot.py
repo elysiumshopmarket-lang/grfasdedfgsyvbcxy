@@ -37,7 +37,6 @@ MICROSIP = os.getenv("MICROSIP_PATH", r"C:\Program Files (x86)\MicroSIP\microsip
 SPEAKER_DEVICE = os.getenv("SPEAKER_DEVICE", "CABLE-A Output")  # hier kommt MicroSIPs Ton raus
 MIC_DEVICE = os.getenv("MIC_DEVICE", "CABLE-B Input")           # hier schreibt der Bot für MicroSIP rein
 HOOK_PORT = int(os.getenv("HOOK_PORT", "8765"))
-ALLOWED = {int(x) for x in os.getenv("ALLOWED_USER_IDS", "").replace(" ", "").split(",") if x}
 
 RATE = 48000
 CHANNELS = 2
@@ -205,8 +204,6 @@ class CallBot(discord.Client):
 
     async def on_ready(self):
         print(f"Eingeloggt als {self.user}")
-        if not ALLOWED:
-            print("WARNUNG: ALLOWED_USER_IDS ist leer - niemand darf Befehle nutzen!")
 
     # --- MicroSIP-Hooks ---
     async def h_incoming(self, request):
@@ -271,13 +268,7 @@ def fmt_dur(sec):
 
 
 class AllowedView(discord.ui.View):
-    """Nur Nutzer aus ALLOWED_USER_IDS dürfen Buttons drücken."""
-
-    async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.user.id in ALLOWED:
-            return True
-        await interaction.response.send_message("Dafür hast du keine Berechtigung.", ephemeral=True)
-        return False
+    pass
 
 
 class CallPanel(AllowedView):
@@ -373,10 +364,6 @@ class IncomingView(AllowedView):
 client = CallBot()
 
 
-def allowed(interaction):
-    return interaction.user.id in ALLOWED
-
-
 async def open_panel(interaction, label):
     """Postet das Anruf-Panel (normale Nachricht, damit sie dauerhaft editierbar bleibt)."""
     if client.incoming_msg:
@@ -417,7 +404,6 @@ def main_embed():
     e.add_field(name="Status", value="🟢 Anruf aktiv" if active else "⚪ Bereit", inline=True)
     e.add_field(name="Kanal", value=client.vc.channel.mention if active else "—", inline=True)
     e.add_field(name="Befehle", value="`/call` · `/answer` · `/hangup` · `/status`", inline=False)
-    e.set_footer(text="Nur freigegebene Nutzer können Buttons verwenden")
     return e
 
 
@@ -466,8 +452,6 @@ class MainPanel(AllowedView):
 @client.tree.command(name="panel", description="Das Telefon-Bedienfeld posten")
 @app_commands.guild_only()
 async def panel_cmd(interaction: discord.Interaction):
-    if not allowed(interaction):
-        return await interaction.response.send_message("Dafür hast du keine Berechtigung.", ephemeral=True)
     await interaction.response.send_message(embed=main_embed(), view=MainPanel())
 
 
@@ -478,8 +462,6 @@ async def panel_cmd(interaction: discord.Interaction):
 @app_commands.describe(nummer="z.B. +491701234567")
 @app_commands.guild_only()
 async def call(interaction: discord.Interaction, nummer: str):
-    if not allowed(interaction):
-        return await interaction.response.send_message("Dafür hast du keine Berechtigung.", ephemeral=True)
     await interaction.response.defer(ephemeral=True)
     await start_call(interaction, nummer)
 
@@ -487,8 +469,6 @@ async def call(interaction: discord.Interaction, nummer: str):
 @client.tree.command(name="answer", description="Eingehenden MicroSIP-Anruf annehmen")
 @app_commands.guild_only()
 async def answer(interaction: discord.Interaction):
-    if not allowed(interaction):
-        return await interaction.response.send_message("Dafür hast du keine Berechtigung.", ephemeral=True)
     await interaction.response.defer(ephemeral=True)
     err = await client.join_and_bridge(interaction.user)
     if err:
@@ -501,8 +481,6 @@ async def answer(interaction: discord.Interaction):
 @client.tree.command(name="hangup", description="Anruf beenden")
 @app_commands.guild_only()
 async def hangup(interaction: discord.Interaction):
-    if not allowed(interaction):
-        return await interaction.response.send_message("Dafür hast du keine Berechtigung.", ephemeral=True)
     microsip("/hangupall")
     await client.end_call()
     await interaction.response.send_message("📴 Aufgelegt.", ephemeral=True)
